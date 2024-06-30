@@ -23,6 +23,7 @@ from privaterelay.tests.utils import (
     vpn_subscription,
 )
 
+from ..apps import BadWords
 from ..exceptions import (
     CannotMakeAddressException,
     CannotMakeSubdomainException,
@@ -237,8 +238,8 @@ class RelayAddressTest(TestCase):
         )
         assert not repeat_deleted_relay_address.address == address
 
-    @patch("emails.validators.badwords", return_value=[])
-    @patch("emails.validators.blocklist", return_value=["blocked-word"])
+    @patch("emails.validators.badwords", return_value=BadWords(short=set(), long=[]))
+    @patch("emails.validators.blocklist", return_value=set(["blocked-word"]))
     def test_address_contains_blocklist_invalid(
         self, mock_blocklist: Mock, mock_badwords: Mock
     ) -> None:
@@ -1214,12 +1215,12 @@ class DomainAddressTest(TestCase):
         assert exc_info.value.get_codes() == "duplicate_address"
 
     @override_flag("custom_domain_management_redesign", active=False)
-    def test_make_domain_address_can_make_dupe_of_deleted(self):
+    def test_make_domain_address_can_make_dupe_of_deleted(self) -> None:
         address = "same-address"
         domain_address = DomainAddress.make_domain_address(self.user, address=address)
         domain_address_hash = address_hash(
             domain_address.address,
-            domain_address.user_profile.subdomain,
+            domain_address.user.profile.subdomain,
             domain_address.domain_value,
         )
         domain_address.delete()
@@ -1232,12 +1233,12 @@ class DomainAddressTest(TestCase):
         assert dupe_domain_address.full_address == domain_address.full_address
 
     @override_flag("custom_domain_management_redesign", active=True)
-    def test_make_domain_address_cannot_make_dupe_of_deleted(self):
+    def test_make_domain_address_cannot_make_dupe_of_deleted(self) -> None:
         address = "same-address"
         domain_address = DomainAddress.make_domain_address(self.user, address=address)
         domain_address_hash = address_hash(
             domain_address.address,
-            domain_address.user_profile.subdomain,
+            domain_address.user.profile.subdomain,
             domain_address.domain_value,
         )
         domain_address.delete()
